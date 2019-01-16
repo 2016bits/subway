@@ -38,24 +38,23 @@ private:
 	map<DI, PDI> paths;
 	NODE station[maxn];			//存放所有的站点信息
 	EDGE edge[maxn*maxn >> 1];	//存放所有边的信息
-	int et[maxn], tg[maxn], maxtime, lim;
+	int et[maxn], tg[maxn], maxtime, lim = 4000000;
 	int ansq[maxn], ans, anst[maxn], an;
 	
 	void AddEdge(int, int);		//增加新边
 	int GetLineID(const char *);//得到线路的编号 
 	int AddStation(const char*, int);//增加新站
 	int init();					//从文件读取地铁站信息
-	vector<int> inters(vector<int>, vector<int>);
-	void BFS2(int, int);
-	int BFS(int, int, bool, int*);
-	void OutputInfo(int*, int);
-	void DFS(int, int, int);
-	void DFS2(int, int);
+//	vector<int> inters(vector<int>, vector<int>);
+//	void BFS2(int, int);
+//	int BFS(int, int, bool, int*);
+//	void OutputInfo(int*, int);
+//	void DFS(int, int, int);
+//	void DFS2(int, int);
 
 public:
-	Subway() {lim = 4000000;}
+	Subway() {}
 	Subway(string file) {
-		lim = 4000000;
 		strcpy(path, file.data());
 	}
 	bool initialize(string);
@@ -79,9 +78,9 @@ void Subway::AddEdge(int first, int end)
 }
 
 int Subway::GetLineID(const char *s)
-{
+{//由线路名得到对应的编号 
 	for (int i = 1; i <= line_num; ++i) {
-		if (!strcmp(lines[i], s))
+		if (strcmp(lines[i], s) == 0)
 			return i;
 	}
 	return 0;
@@ -93,7 +92,7 @@ int Subway::AddStation(const char *s, int ref = -1)
 	int num;
 	if (stat_refl.find(str) != stat_refl.end()) {
 		num = stat_refl[str];
-		if (num > 0) {
+		if (ref > 0) {
 			station[num].v.push_back(ref);
 		}
 	}
@@ -115,7 +114,7 @@ int Subway::init()
 	char s[64];
 	FILE* f = fopen(path, "r");		//读取保存地铁信息的文本文件
 	if (f == NULL) {
-		printf("Error: file '%s' does not exist or access permission denied.\n", subway_data.data());
+		printf("Error: fail to open file '%s'.\n", subway_data.data());
 		return 1;
 	}
 	else {
@@ -146,18 +145,18 @@ int Subway::init()
 						AddEdge(line_n[line_num][i-1], line_n[line_num][i-2]);
 					} 
 				} 
-				if (cir) {
-					fscanf(f, "%s", s, 64);
-					bool flag = false;
-					if (s[strlen(s) - 1] == '*') {
-						s[strlen(s) - 1] = '\0';
-						flag = true;
-					}
-					int numb = AddStation(s);
-					AddEdge(line_n[line_num][num-1], numb);
-					if (flag == false)
-						AddEdge(numb, line_n[line_num][num-1]);
+			}
+			if (cir) {
+				fscanf(f, "%s", s, 64);
+				bool flag = false;
+				if (s[strlen(s) - 1] == '*') {
+					s[strlen(s) - 1] = '\0';
+					flag = true;
 				}
+				int numb = AddStation(s);
+				AddEdge(line_n[line_num][num-1], numb);
+				if (flag == false)
+					AddEdge(numb, line_n[line_num][num-1]);
 			}
 		} 
 		fclose(f);
@@ -174,10 +173,10 @@ bool Subway::initialize(string file = string(""))
 
 void Subway::do_main(string s)
 {
-	int k = GetLineID(s.data());
-	if (k) {
-		for (unsigned int i = 0; i < line_n[k].size(); ++i)
-			printf("%s\n", station[line_n[k][i]].str);
+	int num = GetLineID(s.data());
+	if (num) {
+		for (unsigned int i = 0; i < line_n[num].size(); ++i)
+			printf("%s\n", station[line_n[num][i]].str);
 	}
 	else printf("line %s was not found.\n", s.c_str());
 }
@@ -188,16 +187,19 @@ Subway subway(subway_data);
 int main(int argc, char* argv[])
 {
 	string cmd_exit("exit");
-	if (subway.initialize())
+	if (subway.initialize()) {
+		cout << "Initialization failed." << endl;
 		return 1;
+	}
 	bool flag = true;
-	if (argc == 1) {
+//	if (argc == 1) {
 		flag = false;
 		string s;
 		while (true) {
 			cin >> s;
+			cout << s;
 			if (s == cmd_exit) break;
 			subway.do_main(s);
 		}
-	}
+//	}
 }
