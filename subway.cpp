@@ -19,7 +19,7 @@ typedef struct edge{		//存边的信息
 	int prior;				//上一条邻接边的编号 
 }EDGE;
 typedef struct node{
-	int ecount;		//ecount表示站台所连接的编号最大的边的编号
+	int emax;		//emax表示站台所连接的编号最大的边的编号
 	int enumb;		//enumb表示该地铁站所连接的边的条数 
 	char str[64];	//存站名
 	vector<int> v, con;		// v保存地铁站对应的线路编号
@@ -27,6 +27,101 @@ typedef struct node{
 
 const string subway_data("Beijing_subway.txt");
 
+class Bsearch {
+private:
+	queue<DI> q;
+	vector<string> stat_name;
+	map<DI, int> u, v;
+	map<DI, DI> dpa;
+	
+public:
+	Bsearch() {
+		stat_name.clear();
+		while (!q.empty())
+			q.pop();
+		u.clear();
+		v.clear();
+		dpa.clear();
+	}
+	vector<int> inters(vector<int>, vector<int>);
+	bool judge(DI, DI);
+	int cal(vector<int>, vector<int>);
+	void Search(int, int);
+	void Bfs(int, int);
+};
+
+//定义Bsearch类的函数 
+vector<int> Bsearch::inters(vector<int> x, vector<int> y)
+{//找到x和y的公共部分 
+	vector<int>::iterator it1, it2;
+	it1 = x.begin();
+	it2 = y.begin();
+	vector<int> res;
+	res.clear();
+	while (it1 != x.end() && it2 != y.end()) {
+		if (*it1 == *it2) {
+			res.push_back(*it1);
+			++it1;
+			++it2;
+		}
+		else if (*it1 < *it2) ++it1;
+		else ++it2;
+	}
+	return res;
+}
+bool Bsearch::judge(DI x, DI y)
+{
+	bool flag1 = true, flag2 = true;
+	if (abs(dpa[x].fst) != AddStation("大望路"))
+		flag1 = false;
+	else if (y.scn != AddStation("高碑店"))
+		flag1 = false;
+	if (abs(dpa[x].fst) != AddStation("高碑店"))
+		flag2 = false;
+	else if (y.scn != AddStation("大望路"))
+		flag2 = false;
+	return (flag1 || flag2);
+}
+
+int Bsearch::cal(vector<int> x, vector<int> y)
+{
+	vector<int> a = inters(station[x.scn].v, station[x.fst].v);
+	vector<int> b = inters(station[y.scn].v, station[y.fst].v);
+	vector<int> c = inters(a, b);
+	int csize = c.size();
+	return(csize != 1);
+}
+
+void Bsearch::Search(int start, int end)
+{//搜索队列中的内容 
+	while(!q.empty()) {
+		DI x = q.front();
+		int step = u[x];
+		int d = v[x];
+		q.pop();
+		for (int stat = station[x.scn].emax; stat; stat = edge[stat].prior) {
+			DI y(x.scn, edge[stat].num);
+			int stp = cal(x, y) + step;
+			if (dpa[x] != DI(0, start) && judge(x, y) {
+				++stp;
+			}
+			
+		}
+	}
+}
+void Bsearch::Bfs(int start, int end)
+{//广搜 
+	for (int stat = station[start].emax; stat; stat = edge[stat].prior) {
+		int num = edge[stat].num;
+		DI di(start, num);
+		q.push(di);
+		dpa[di] = DI(0, start);
+		u[di] = 0;
+		v[di] = 1;
+	}
+	
+}
+//定义Bsearch类的函数
 class Subway {
 private:
 	int line_num, stat_num, edge_num;
@@ -45,9 +140,7 @@ private:
 	int GetLineID(const char *);//得到线路的编号 
 	int AddStation(const char*, int);//增加新站
 	int init();					//从文件读取地铁站信息
-//	vector<int> inters(vector<int>, vector<int>);
-//	void BFS2(int, int);
-//	int BFS(int, int, bool, int*);
+	int BFS(int, int);
 //	void OutputInfo(int*, int);
 //	void DFS(int, int, int);
 //	void DFS2(int, int);
@@ -57,22 +150,21 @@ public:
 	Subway(string file) {
 		strcpy(path, file.data());
 	}
-	bool initialize(string);
-	void do_main(string);
-	void do_b(string, string);
-	void do_c(string, string);
-	void do_c(string);
-	void usage();
+	bool initialize(string);	//读取文件中的地铁站信息 
+	void do_main(string);		//查询地铁线路信息 
+	void do_b(string, string);	//查询从地铁站1到地铁站2的最短路径 
+	void do_a(string);			//遍历北京地铁 
+	void usage();				//使用说明（在没有参数输入时调用） 
 };
 
 //定义类的私有函数 
 void Subway::AddEdge(int first, int end)
-{
+{//增加新边
 	++edge_num;					//每次增加新边，编号自动+1
 	edge[edge_num].num = end;	//记录新边的终点
-	edge[edge_num].prior = station[first].ecount;
+	edge[edge_num].prior = station[first].emax;
 	++station[first].enumb;		//记录站台连接的边数 
-	station[first].ecount = edge_num;//记录站台所连接的边的编号
+	station[first].emax = edge_num;//记录站台所连接的边的编号
 	//记录地铁站所连接的边的前一个站台的信息（x是该边的起点，y是该边的终点）
 	station[end].con.push_back(first);	
 }
@@ -87,7 +179,7 @@ int Subway::GetLineID(const char *s)
 }
 
 int Subway::AddStation(const char *s, int ref = -1)
-{
+{//增加新站
 	string str(s);
 	int num;
 	if (stat_refl.find(str) != stat_refl.end()) {
@@ -102,7 +194,7 @@ int Subway::AddStation(const char *s, int ref = -1)
 		station[stat_num].v.clear();
 		station[stat_num].con.clear();
 		station[stat_num].v.push_back(ref);
-		station[stat_num].ecount = 0;
+		station[stat_num].emax = 0;
 		station[stat_num].enumb = 0;
 		stat_refl[str] = stat_num;		//保存地铁站对应的编号
 		num = stat_num;
@@ -110,7 +202,7 @@ int Subway::AddStation(const char *s, int ref = -1)
 	return num;
 }
 int Subway::init()
-{
+{//从文件读取地铁站信息
 	char s[64];
 	FILE* f = fopen(path, "r");		//读取保存地铁信息的文本文件
 	if (f == NULL) {
@@ -163,16 +255,17 @@ int Subway::init()
 		return 0;
 	}
 }
+
 //定义类的私有函数 
 //定义类的共有函数
 bool Subway::initialize(string file = string(""))
-{
+{//读取文件中的地铁站信息 
 	if (file != "") strcpy(path, file.data());
 	return (init() == 1);
 }
 
 void Subway::do_main(string s)
-{
+{//查询地铁线路信息 
 	int num = GetLineID(s.data());
 	if (num) {
 		for (unsigned int i = 0; i < line_n[num].size(); ++i)
@@ -181,6 +274,34 @@ void Subway::do_main(string s)
 	else printf("line %s was not found.\n", s.c_str());
 }
 
+void Subway::do_a(string s)
+{//从s出发遍历北京地铁站 
+	if (stat_refl.find(s) != stat_refl.end()) {
+		
+	}
+	else {
+		fprintf(stderr, "station '%s' was not found.\n", s.c_str());
+	}
+}
+
+void Subway::do_b(string s1, string s2)
+{//查询从地铁站s1至地铁站s2的最短路径 
+	if (stat_refl.find(s1) != stat_refl.end() && stat_refl.find(s2) != stat_refl.end()) {
+		int start = stat_refl[s1];
+		int end = stat_refl[s2];
+		if (start == end) {
+			printf("you arrived.\n");
+			return;
+		}
+		else {
+			Bsearch bsearch;
+			bsearch.Bfs(start, end);
+		}
+	}
+	else {
+		fprintf(stderr, "station was not found.\n");
+	}
+}
 //定义类的共有函数
 
 Subway subway(subway_data);
@@ -192,14 +313,23 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 	bool flag = true;
-//	if (argc == 1) {
+	if (argc == 1) {
 		flag = false;
 		string s;
 		while (true) {
 			cin >> s;
-			cout << s;
 			if (s == cmd_exit) break;
 			subway.do_main(s);
 		}
-//	}
+	}
+	else if (argc == 3 && !strcmp(argv[1], "/a")) {
+		string ref(argv[2]);
+		subway.do_a(ref);
+	}
+	else if (argc == 4 && !strcmp(argv[1], "/b")) {
+		string ref1(argv[2]);
+		string ref2(argv[3]);
+		subway.do_b(ref1, ref2);
+	}
+	return 0;
 }
