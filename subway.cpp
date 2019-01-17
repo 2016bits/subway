@@ -27,100 +27,6 @@ typedef struct node{
 
 const string subway_data("Beijing_subway.txt");
 
-class Bsearch {
-private:
-	queue<DI> q;
-	vector<string> stat_name;
-	map<DI, int> u, v;
-	map<DI, DI> dpa;
-	
-public:
-	Bsearch() {
-		stat_name.clear();
-		while (!q.empty())
-			q.pop();
-		u.clear();
-		v.clear();
-		dpa.clear();
-	}
-	vector<int> inters(vector<int>, vector<int>);
-	bool judge(DI, DI);
-	int cal(vector<int>, vector<int>);
-	void Search(int, int);
-	void Bfs(int, int);
-};
-
-//定义Bsearch类的函数 
-vector<int> Bsearch::inters(vector<int> x, vector<int> y)
-{//找到x和y的公共部分 
-	vector<int>::iterator it1, it2;
-	it1 = x.begin();
-	it2 = y.begin();
-	vector<int> res;
-	res.clear();
-	while (it1 != x.end() && it2 != y.end()) {
-		if (*it1 == *it2) {
-			res.push_back(*it1);
-			++it1;
-			++it2;
-		}
-		else if (*it1 < *it2) ++it1;
-		else ++it2;
-	}
-	return res;
-}
-bool Bsearch::judge(DI x, DI y)
-{
-	bool flag1 = true, flag2 = true;
-	if (abs(dpa[x].fst) != AddStation("大望路"))
-		flag1 = false;
-	else if (y.scn != AddStation("高碑店"))
-		flag1 = false;
-	if (abs(dpa[x].fst) != AddStation("高碑店"))
-		flag2 = false;
-	else if (y.scn != AddStation("大望路"))
-		flag2 = false;
-	return (flag1 || flag2);
-}
-
-int Bsearch::cal(vector<int> x, vector<int> y)
-{
-	vector<int> a = inters(station[x.scn].v, station[x.fst].v);
-	vector<int> b = inters(station[y.scn].v, station[y.fst].v);
-	vector<int> c = inters(a, b);
-	int csize = c.size();
-	return(csize != 1);
-}
-
-void Bsearch::Search(int start, int end)
-{//搜索队列中的内容 
-	while(!q.empty()) {
-		DI x = q.front();
-		int step = u[x];
-		int d = v[x];
-		q.pop();
-		for (int stat = station[x.scn].emax; stat; stat = edge[stat].prior) {
-			DI y(x.scn, edge[stat].num);
-			int stp = cal(x, y) + step;
-			if (dpa[x] != DI(0, start) && judge(x, y) {
-				++stp;
-			}
-			
-		}
-	}
-}
-void Bsearch::Bfs(int start, int end)
-{//广搜 
-	for (int stat = station[start].emax; stat; stat = edge[stat].prior) {
-		int num = edge[stat].num;
-		DI di(start, num);
-		q.push(di);
-		dpa[di] = DI(0, start);
-		u[di] = 0;
-		v[di] = 1;
-	}
-	
-}
 //定义Bsearch类的函数
 class Subway {
 private:
@@ -135,21 +41,21 @@ private:
 	EDGE edge[maxn*maxn >> 1];	//存放所有边的信息
 	int et[maxn], tg[maxn], maxtime, lim = 4000000;
 	int ansq[maxn], ans, anst[maxn], an;
-	
-	void AddEdge(int, int);		//增加新边
-	int GetLineID(const char *);//得到线路的编号 
-	int AddStation(const char*, int);//增加新站
-	int init();					//从文件读取地铁站信息
-	int BFS(int, int);
-//	void OutputInfo(int*, int);
-//	void DFS(int, int, int);
-//	void DFS2(int, int);
 
 public:
 	Subway() {}
 	Subway(string file) {
 		strcpy(path, file.data());
 	}
+	void AddEdge(int, int);		//增加新边
+	int GetLineID(const char *);//得到线路的编号 
+	int AddStation(const char*, int);//增加新站
+	int init();					//从文件读取地铁站信息
+	vector<int> inters(vector<int>, vector<int>);
+	int cal(DI, DI);
+	void BfsInit(queue<DI>&, map<DI,int>&, map<DI,int>&, map<DI,DI>&, int);
+	bool judge(map<DI,DI>&, DI, DI);
+	void BFS(int, int);
 	bool initialize(string);	//读取文件中的地铁站信息 
 	void do_main(string);		//查询地铁线路信息 
 	void do_b(string, string);	//查询从地铁站1到地铁站2的最短路径 
@@ -256,6 +162,100 @@ int Subway::init()
 	}
 }
 
+vector<int> Subway::inters(vector<int> x, vector<int> y)
+{//找到x和y的公共部分 
+	vector<int>::iterator it1, it2;
+	it1 = x.begin();
+	it2 = y.begin();
+	vector<int> res;
+	res.clear();
+	while (it1 != x.end() && it2 != y.end()) {
+		if (*it1 == *it2) {
+			res.push_back(*it1);
+			++it1;
+			++it2;
+		}
+		else if (*it1 < *it2) ++it1;
+		else ++it2;
+	}
+	return res;
+}
+
+int Subway::cal(DI x, DI y)
+{
+	vector<int> a = inters(station[x.second].v, station[x.first].v);
+	vector<int> b = inters(station[y.second].v, station[y.first].v);
+	vector<int> c = inters(a, b);
+	int csize = c.size();
+	return(csize != 1);
+}
+
+void Subway::BfsInit(queue<DI>&q, map<DI,int>&u, map<DI,int>&v, map<DI,DI>&dpa, int start)
+{
+	while (!q.empty())
+		q.pop();
+	u.clear();
+	v.clear();
+	dpa.clear();
+	for (int stat = station[start].emax; stat; stat = edge[stat].prior) {
+		int num = edge[stat].num;
+		DI di(start, num);
+		q.push(di);
+		dpa[di] = DI(0, start);
+		u[di] = 0;
+		v[di] = 1;
+	}
+}
+
+bool Subway::judge(map<DI,DI>&dpa, DI x, DI y)
+{
+	bool flag1 = true, flag2 = true;
+	if (abs(dpa[x].first) != AddStation("大望路"))
+		flag1 = false;
+	else if (y.second != AddStation("高碑店"))
+		flag1 = false;
+	if (abs(dpa[x].first) != AddStation("高碑店"))
+		flag2 = false;
+	else if (y.second != AddStation("大望路"))
+		flag2 = false;
+	return (flag1 || flag2);
+}
+
+void Subway::BFS(int start, int end)
+{
+	queue<DI> q;
+	vector<string> stat_name;
+	map<DI, int> u, v;
+	map<DI, DI> dpa;
+	stat_name.clear();
+	BfsInit(q, u, v, dpa, start);
+	while(!q.empty()) {
+		DI x = q.front();
+		int step = u[x];
+		int d = v[x];
+		q.pop();
+		for (int stat = station[x.second].emax; stat; stat = edge[stat].prior) {
+			DI y(x.second, edge[stat].num);
+			int stp = cal(x, y) + step;
+			if (dpa[x] != DI(0, start) && judge(dpa, x, y)) {
+				++stp;
+			}
+			bool flag = false;
+			if (u.find(y) == u.end())
+				flag = true;
+			else if (stp < u[y])
+				flag = true;
+			else if (stp == u[y] && (v.find(y) == v.end() || d + 1 < v[y]))
+				flag = true;
+			if (flag) {
+				q.push(y);
+				v[y] = v[x] + 1;
+				u[y] = stp;
+				dpa[y] = x;
+			}
+		}
+	}
+}
 //定义类的私有函数 
 //定义类的共有函数
 bool Subway::initialize(string file = string(""))
@@ -294,8 +294,7 @@ void Subway::do_b(string s1, string s2)
 			return;
 		}
 		else {
-			Bsearch bsearch;
-			bsearch.Bfs(start, end);
+			BFS(start, end);
 		}
 	}
 	else {
