@@ -55,6 +55,8 @@ public:
 	int cal(DI, DI);
 	void BfsInit(queue<DI>&, map<DI,int>&, map<DI,int>&, map<DI,DI>&, int);
 	bool judge(map<DI,DI>&, DI, DI);
+	void BfsFun1(queue<DI>&, map<DI,int>&, map<DI,int>&, map<DI,DI>&, int);
+	void BfsFun2(queue<DI>&, map<DI,int>&, map<DI,int>&, map<DI,DI>&, int start, int, vector<string>&);
 	void BFS(int, int);
 	bool initialize(string);	//读取文件中的地铁站信息 
 	void do_main(string);		//查询地铁线路信息 
@@ -221,14 +223,8 @@ bool Subway::judge(map<DI,DI>&dpa, DI x, DI y)
 	return (flag1 || flag2);
 }
 
-void Subway::BFS(int start, int end)
+void Subway::BfsFun1(queue<DI>&q, map<DI,int>&u, map<DI,int>&v, map<DI,DI>&dpa, int start)
 {
-	queue<DI> q;
-	vector<string> stat_name;
-	map<DI, int> u, v;
-	map<DI, DI> dpa;
-	stat_name.clear();
-	BfsInit(q, u, v, dpa, start);
 	while(!q.empty()) {
 		DI x = q.front();
 		int step = u[x];
@@ -255,6 +251,50 @@ void Subway::BFS(int start, int end)
 			}
 		}
 	}
+}
+
+void Subway::BfsFun2(queue<DI>&q, map<DI,int>&u, map<DI,int>&v, map<DI,DI>&dpa, int start, int end, vector<string>&stat_name)
+{
+	int mx = inf, md = inf, m = 0;
+	for (int i = 0; i < station[end].con.size(); ++i) {
+		int stat = station[end].con[i];
+		DI temp(stat, end);
+		if (u[temp] < mx || u[temp] < mx && v[temp] < md) {
+			mx = u[temp];
+			md = v[temp];
+			m = stat;
+		}
+	}
+	DI y(m, end), x(end, end);
+	while(y != DI(0, start)) {
+		string temp(station[y.second].str);
+		vector<int> tk = inters(station[x.second].v, station[x.first].v);
+		if (inters(inters(station[y.second].v, station[y.first].v), tk).size() != 1) {
+			temp += string("换乘") + string(lines[tk[0]]);
+		}
+		if (dpa[y] != DI(0, end) && judge(dpa, y, x)) {
+			temp += string("换乘") + string(lines[tk[0]]);
+		} 
+		stat_name.push_back(temp);
+		x = y;
+		y = dpa[y];
+	}
+	stat_name.push_back(station[y.second].str);
+	printf("%llu\n", stat_name.size());
+	for (unsigned int i = 1; i <= stat_name.size(); ++i)
+		printf("%s\n", stat_name[stat_name.size() - i].c_str());
+}
+
+void Subway::BFS(int start, int end)
+{
+	queue<DI> q;
+	vector<string> stat_name;
+	map<DI, int> u, v;
+	map<DI, DI> dpa;
+	stat_name.clear();
+	BfsInit(q, u, v, dpa, start);
+	BfsFun1(q, u, v, dpa, start);
+	BfsFun2(q, u, v, dpa, start, end, stat_name);
 }
 //定义类的私有函数 
 //定义类的共有函数
