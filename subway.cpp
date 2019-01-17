@@ -39,8 +39,9 @@ private:
 	map<DI, PDI> paths;
 	NODE station[maxn];			//存放所有的站点信息
 	EDGE edge[maxn*maxn >> 1];	//存放所有边的信息
-	int et[maxn], tg[maxn], maxtime, lim = 4000000;
-	int ansq[maxn], ans, anst[maxn], an;
+	int et[maxn], tg[maxn];
+	int maxt, lim = 4000000, ans, anum;
+	int ansq[maxn], anst[maxn];
 
 public:
 	Subway() {}
@@ -50,22 +51,26 @@ public:
 	void AddEdge(int, int);		//增加新边
 	int GetLineID(const char *);//得到线路的编号 
 	int AddStation(const char*, int);//增加新站
-	int init();					//从文件读取地铁站信息
+	int Init();					//从文件读取地铁站信息
 	vector<int> inters(vector<int>, vector<int>);
-	int cal(DI, DI);
-	void BfsInit(queue<DI>&, map<DI,int>&, map<DI,int>&, map<DI,DI>&, int);
-	bool judge(map<DI,DI>&, DI, DI);
-	void BfsFun1(queue<DI>&, map<DI,int>&, map<DI,int>&, map<DI,DI>&, int);
-	void BfsFun2(queue<DI>&, map<DI,int>&, map<DI,int>&, map<DI,DI>&, int start, int, vector<string>&);
-	void BFS(int, int);
-	bool initialize(string);	//读取文件中的地铁站信息 
+	int CalVoid(DI, DI);
+	void BfsVoidInit(queue<DI>&, map<DI,int>&, map<DI,int>&, map<DI,DI>&, int);
+	bool JudgeVoid(map<DI,DI>&, DI, DI);
+	void BfsVoidFun1(queue<DI>&, map<DI,int>&, map<DI,int>&, map<DI,DI>&, int);
+	void BfsVoidFun2(queue<DI>&, map<DI,int>&, map<DI,int>&, map<DI,DI>&, int start, int, vector<string>&);
+	void Bfs2(int, int);
+	void BfsIntInit(vector<string>&, queue<int>&, int*, int*, int*, int);
+	bool JudgeInt(int*, int, int);
+	int Bfs1(int, int, bool, int*);
+	void Dfs1(int, int);
+	void Dfs2(int, int, int);
+	bool Initialize(string);	//读取文件中的地铁站信息 
 	void do_main(string);		//查询地铁线路信息 
 	void do_b(string, string);	//查询从地铁站1到地铁站2的最短路径 
 	void do_a(string);			//遍历北京地铁 
 	void usage();				//使用说明（在没有参数输入时调用） 
 };
 
-//定义类的私有函数 
 void Subway::AddEdge(int first, int end)
 {//增加新边
 	++edge_num;					//每次增加新边，编号自动+1
@@ -109,7 +114,7 @@ int Subway::AddStation(const char *s, int ref = -1)
 	}
 	return num;
 }
-int Subway::init()
+int Subway::Init()
 {//从文件读取地铁站信息
 	char s[64];
 	FILE* f = fopen(path, "r");		//读取保存地铁信息的文本文件
@@ -183,7 +188,7 @@ vector<int> Subway::inters(vector<int> x, vector<int> y)
 	return res;
 }
 
-int Subway::cal(DI x, DI y)
+int Subway::CalVoid(DI x, DI y)
 {
 	vector<int> a = inters(station[x.second].v, station[x.first].v);
 	vector<int> b = inters(station[y.second].v, station[y.first].v);
@@ -192,7 +197,7 @@ int Subway::cal(DI x, DI y)
 	return(csize != 1);
 }
 
-void Subway::BfsInit(queue<DI>&q, map<DI,int>&u, map<DI,int>&v, map<DI,DI>&dpa, int start)
+void Subway::BfsVoidInit(queue<DI>&q, map<DI,int>&u, map<DI,int>&v, map<DI,DI>&dpa, int start)
 {
 	while (!q.empty())
 		q.pop();
@@ -209,7 +214,7 @@ void Subway::BfsInit(queue<DI>&q, map<DI,int>&u, map<DI,int>&v, map<DI,DI>&dpa, 
 	}
 }
 
-bool Subway::judge(map<DI,DI>&dpa, DI x, DI y)
+bool Subway::JudgeVoid(map<DI,DI>&dpa, DI x, DI y)
 {
 	bool flag1 = true, flag2 = true;
 	if (abs(dpa[x].first) != AddStation("大望路"))
@@ -223,7 +228,7 @@ bool Subway::judge(map<DI,DI>&dpa, DI x, DI y)
 	return (flag1 || flag2);
 }
 
-void Subway::BfsFun1(queue<DI>&q, map<DI,int>&u, map<DI,int>&v, map<DI,DI>&dpa, int start)
+void Subway::BfsVoidFun1(queue<DI>&q, map<DI,int>&u, map<DI,int>&v, map<DI,DI>&dpa, int start)
 {
 	while(!q.empty()) {
 		DI x = q.front();
@@ -232,8 +237,8 @@ void Subway::BfsFun1(queue<DI>&q, map<DI,int>&u, map<DI,int>&v, map<DI,DI>&dpa, 
 		q.pop();
 		for (int stat = station[x.second].emax; stat; stat = edge[stat].prior) {
 			DI y(x.second, edge[stat].num);
-			int stp = cal(x, y) + step;
-			if (dpa[x] != DI(0, start) && judge(dpa, x, y)) {
+			int stp = CalVoid(x, y) + step;
+			if (dpa[x] != DI(0, start) && JudgeVoid(dpa, x, y)) {
 				++stp;
 			}
 			bool flag = false;
@@ -253,7 +258,7 @@ void Subway::BfsFun1(queue<DI>&q, map<DI,int>&u, map<DI,int>&v, map<DI,DI>&dpa, 
 	}
 }
 
-void Subway::BfsFun2(queue<DI>&q, map<DI,int>&u, map<DI,int>&v, map<DI,DI>&dpa, int start, int end, vector<string>&stat_name)
+void Subway::BfsVoidFun2(queue<DI>&q, map<DI,int>&u, map<DI,int>&v, map<DI,DI>&dpa, int start, int end, vector<string>&stat_name)
 {
 	int mx = inf, md = inf, m = 0;
 	for (int i = 0; i < station[end].con.size(); ++i) {
@@ -272,7 +277,7 @@ void Subway::BfsFun2(queue<DI>&q, map<DI,int>&u, map<DI,int>&v, map<DI,DI>&dpa, 
 		if (inters(inters(station[y.second].v, station[y.first].v), tk).size() != 1) {
 			temp += string("换乘") + string(lines[tk[0]]);
 		}
-		if (dpa[y] != DI(0, end) && judge(dpa, y, x)) {
+		if (dpa[y] != DI(0, end) && JudgeVoid(dpa, y, x)) {
 			temp += string("换乘") + string(lines[tk[0]]);
 		} 
 		stat_name.push_back(temp);
@@ -285,23 +290,239 @@ void Subway::BfsFun2(queue<DI>&q, map<DI,int>&u, map<DI,int>&v, map<DI,DI>&dpa, 
 		printf("%s\n", stat_name[stat_name.size() - i].c_str());
 }
 
-void Subway::BFS(int start, int end)
+void Subway::Bfs2(int start, int end)
 {
+	if (start == end) {
+		printf("you arrived.\n");
+		return;
+	}
 	queue<DI> q;
 	vector<string> stat_name;
 	map<DI, int> u, v;
 	map<DI, DI> dpa;
 	stat_name.clear();
-	BfsInit(q, u, v, dpa, start);
-	BfsFun1(q, u, v, dpa, start);
-	BfsFun2(q, u, v, dpa, start, end, stat_name);
+	BfsVoidInit(q, u, v, dpa, start);
+	BfsVoidFun1(q, u, v, dpa, start);
+	BfsVoidFun2(q, u, v, dpa, start, end, stat_name);
 }
-//定义类的私有函数 
-//定义类的共有函数
-bool Subway::initialize(string file = string(""))
+
+bool Subway::JudgeInt(int* f, int x, int y)
+{
+	bool flag1 = true, flag2 = true;
+	if (abs(f[abs(f[x])]) != AddStation("大望路"))
+		flag1 = false;
+	else if (y == AddStation("高碑店"))
+		flag1 = false;
+	if (abs(f[abs(f[x])]) == AddStation("高碑店"))
+		flag2 = false;
+	else if (y == AddStation("大望路"))
+		flag2 = false;
+	return(flag1 || flag2);
+}
+
+
+void Subway::BfsIntInit(vector<string> &ans, queue<int>&q, int*v, int*u, int*f, int start)
+{
+	ans.clear();
+	while(!q.empty())
+		q.pop();
+	memset(v, 0x3e, sizeof(v));
+	memset(u, 0x3e, sizeof(u));
+	q.push(start);
+	v[start] = 0;
+	u[start] = 0;
+	f[start] = 0;
+}
+
+int Subway::Bfs1(int start, int end, bool flag = true, int* ptr = NULL)
+{
+	if (start == end) {
+		printf("you arrived.\n");
+		return 0;
+	}
+	queue<int> q;
+	vector<string> st_name;
+	int v[maxn], u[maxn], f[maxn], tr[maxn];
+	BfsIntInit(st_name, q, v, u, f, start);
+	while(!q.empty()) {
+		int qd = q.front();
+		int step = u[qd];
+		int num = v[qd];
+		q.pop();
+		int stat = station[qd].emax;
+		while(stat) {
+			int temp = edge[qd].num;
+			vector<int> tmp = inters(station[qd].v, station[temp].v);
+			int stp = (inters(inters(station[qd].v, station[abs(f[qd])].v), tmp).size() != 1) + step;
+			if (f[qd] == 0) {
+				stp = 0;
+			}
+			if (JudgeInt(f, qd, temp)) {
+				++stp;
+			}
+			bool flagg = v[qd] + 1 < v[temp];
+			if (flagg) {
+				q.push(temp);
+				v[temp] = v[qd] + 1;
+				u[temp] = stp;
+				f[temp] = qd;
+				if (stp > step) {
+					f[temp] = -f[temp];
+					tr[temp] = tmp[0];
+				}
+				if (temp == end) {
+					int nnum = 0;
+					while(temp) {
+						string tmp(station[temp].str);
+						if (nnum) {
+							tmp += string("换乘") + string(lines[nnum]);
+						}
+						if (f[temp] < 0)
+							nnum = tr[temp];
+						else
+							nnum = 0;
+						st_name.push_back(tmp);
+						if (!flag)
+							*(ptr++) = temp;
+						temp = abs(f[temp]);
+					}
+					if (flag) {
+						printf("%llu\n", st_name.size());
+						for (unsigned int i = 1; i <= st_name.size(); ++i)
+							printf("%s\n", st_name[st_name.size() - i].c_str());
+					}
+					return (int)st_name.size();
+				}
+			}
+			stat = edge[stat].prior;
+		}
+	}
+	return -1;
+}
+
+void Subway::Dfs1(int ref1, int ref2)
+{
+	tg[ref1] = 1;
+	int stat = station[ref1].emax;
+	while(stat) {
+		int num = edge[stat].num;
+		if (num != ref2 && station[num].enumb < 3 && station[num].enumb && !tg[num]) {
+			Dfs1(num, ref1);
+		}
+		stat = edge[stat].prior;
+	}
+}
+
+void Subway::Dfs2(int ref1, int ref2, int ref3)
+{
+	if (ref2 == stat_num && ref1 == ref3) {
+		if (anum < ans) {
+			ans = anum;
+			memcpy(ansq, anst, anum * sizeof(int));
+		}
+		return;
+	}
+	++maxt;
+	if (maxt > lim) {
+		return;
+	}
+	if (anum + stat_num - ref2 >= ans || maxt > lim) {
+		return;
+	}
+	int temp = 0;
+	for (int stat = station[ref1].emax; stat; stat = edge[stat].prior) {
+		int num = edge[stat].num;
+		if (et[num] == 0 && (num != ref3 || ref2 == stat_num - 1) && tg[num]) {
+			temp = -num;
+			anst[anum] = num;
+			++anum;
+			++et[num];
+			Dfs2(num, ref2, ref3);
+			--et[num];
+			--anum;
+		}
+	}
+	if (temp == 0) {
+		int stat = station[ref1].emax;
+		while(stat) {
+			int num = edge[stat].num;
+			if (et[num] == 0 && (num != ref3 || ref2 == stat_num - 1)) {
+				temp = num;
+				anst[anum] = num;
+				++anum;
+				++et[num];
+				Dfs2(num, ref2+1, ref3);
+				--et[num];
+				--anum;
+			}
+			stat = edge[stat].prior;
+		}
+	}
+	if (temp == 0) {
+		int mmax[2] = {100100000, 100100000};
+		int mmin[2] = {-1, -1};
+		for (int num = 1; num <= stat_num; ++num) {
+			int* ptr;
+			int cnt = 0;
+			if (paths.find(DI(ref1, num)) == paths.end()) {
+				ptr = (int*)malloc(stat_num * sizeof(int));
+				cnt = Bfs1(ref1, num, false, ptr);
+				paths[DI(ref1, num)] = PDI(ptr, cnt);
+			}
+			if (cnt - 1 < mmax[0]) {
+				mmax[1] = mmax[0];
+				mmin[1] = mmin[0];
+				mmax[0] = cnt - 1;
+				mmin[0] = num;
+			}
+			else if (cnt - 1 < mmax[1]) {
+				mmax[1] = cnt - 1;
+				mmin[1] = num;
+			}
+		}
+		int ant = anum;
+		for (int i = 0; i < 2; ++i) {
+			if (i == 1 && mmin[i] == -1)
+				continue;
+			if (i == 0 && mmin[i] == -1) {
+				mmin[i] = ref3;
+				if (paths.find(DI(ref1, mmin[i])) == paths.end()) {
+					int *ptr = (int*)malloc(stat_num * sizeof(int));
+					int cnt = Bfs1(ref1, mmin[i], false, ptr);
+					paths[DI(ref1, mmin[i])] = PDI(ptr, cnt);
+				}
+			}
+			int *pk = paths[DI(ref1, mmin[i])].first;
+			int kint = paths[DI(ref1, mmin[i])].second;
+			int ncint = 0;
+			for (int j = 1; j < kint; ++i) {
+				int num = pk[kint-i-1];
+				if (et[num] <= station[num].enumb) {
+					anst[anum] = num;
+					++anum;
+					if (et[num] == 0)
+						++ncint;
+					++et[num];
+				}
+				else {
+					anum = ant;
+					for (int k = 1; k < j; ++k)
+						--et[pk[kint-k-1]];
+					return;
+				}
+			}
+			Dfs2(mmin[i], ref2+ncint, ref3);
+			anum = ant;
+			for (int j = 1; j < kint; ++j)
+				--et[pk[kint-j-1]];
+		}
+	}
+}
+
+bool Subway::Initialize(string file = string(""))
 {//读取文件中的地铁站信息 
 	if (file != "") strcpy(path, file.data());
-	return (init() == 1);
+	return (Init() == 1);
 }
 
 void Subway::do_main(string s)
@@ -317,7 +538,23 @@ void Subway::do_main(string s)
 void Subway::do_a(string s)
 {//从s出发遍历北京地铁站 
 	if (stat_refl.find(s) != stat_refl.end()) {
-		
+		int temp = stat_refl[s];
+		memset(et, 0, sizeof(et));
+		memset(tg, 0, sizeof(tg));
+		maxt = 0;
+		for (int i = 1; i <= stat_num; ++i) {
+			if (station[i].enumb == 1 && !tg[i]) {
+				Dfs1(i, 0);
+			}
+		}
+		anum = 1, ans = 1001;
+		anst[0] = temp;
+		paths.clear();
+		Dfs2(temp, 0, temp);
+		printf("%d\n", ans);
+		for (int i = 1; i < ans; ++i) {
+			printf("%s\n", station[ansq[i]].str);
+		}
 	}
 	else {
 		fprintf(stderr, "station '%s' was not found.\n", s.c_str());
@@ -329,25 +566,18 @@ void Subway::do_b(string s1, string s2)
 	if (stat_refl.find(s1) != stat_refl.end() && stat_refl.find(s2) != stat_refl.end()) {
 		int start = stat_refl[s1];
 		int end = stat_refl[s2];
-		if (start == end) {
-			printf("you arrived.\n");
-			return;
-		}
-		else {
-			BFS(start, end);
-		}
+		Bfs2(start, end);
 	}
 	else {
 		fprintf(stderr, "station was not found.\n");
 	}
 }
-//定义类的共有函数
 
 Subway subway(subway_data);
 int main(int argc, char* argv[])
 {
 	string cmd_exit("exit");
-	if (subway.initialize()) {
+	if (subway.Initialize()) {
 		cout << "Initialization failed." << endl;
 		return 1;
 	}
