@@ -51,7 +51,7 @@ public:
 	void AddEdge(int, int);		//增加新边
 	int GetLineID(const char *);//得到线路的编号 
 	int AddStation(const char*, int);//增加新站
-	int Init();					//从文件读取地铁站信息
+	int Init(string);					//从文件读取地铁站信息
 	vector<int> inters(vector<int>, vector<int>);
 	int CalVoid(DI, DI);
 	void BfsVoidInit(queue<DI>&, map<DI,int>&, map<DI,int>&, map<DI,DI>&, int);
@@ -59,12 +59,10 @@ public:
 	void BfsVoidFun1(queue<DI>&, map<DI,int>&, map<DI,int>&, map<DI,DI>&, int);
 	void BfsVoidFun2(queue<DI>&, map<DI,int>&, map<DI,int>&, map<DI,DI>&, int start, int, vector<string>&);
 	void Bfs2(int, int);
-	void BfsIntInit(vector<string>&, queue<int>&, int*, int*, int*, int);
 	bool JudgeInt(int*, int, int);
 	int Bfs1(int, int, bool, int*);
 	void Dfs1(int, int);
 	void Dfs2(int, int, int);
-	bool Initialize(string);	//读取文件中的地铁站信息 
 	void do_main(string);		//查询地铁线路信息 
 	void do_b(string, string);	//查询从地铁站1到地铁站2的最短路径 
 	void do_a(string);			//遍历北京地铁 
@@ -114,8 +112,10 @@ int Subway::AddStation(const char *s, int ref = -1)
 	}
 	return num;
 }
-int Subway::Init()
+
+int Subway::Init(string file = string(""))
 {//从文件读取地铁站信息
+	if (file != "") strcpy(path, file.data());
 	char s[64];
 	FILE* f = fopen(path, "r");		//读取保存地铁信息的文本文件
 	if (f == NULL) {
@@ -326,84 +326,64 @@ bool Subway::JudgeInt(int* f, int x, int y)
 	return flag;
 }
 
-void Subway::BfsIntInit(vector<string> &ans, queue<int>&q, int*v, int*u, int*f, int start)
-{
-	ans.clear();
-	while(!q.empty())
-		q.pop();
-	memset(v, 0x3e, sizeof(v));
-	memset(u, 0x3e, sizeof(u));
-	q.push(start);
-	v[start] = 0;
-	u[start] = 0;
-	f[start] = 0;
-}
-
-int Subway::Bfs1(int start, int end, bool flag = true, int* ptr = NULL)
-{
-	if (start == end) {
-		printf("you arrived.\n");
-		return 0;
-	}
-	queue<int> q;
-	vector<string> st_name;
-	int v[maxn], u[maxn], f[maxn], tr[maxn];
-	BfsIntInit(st_name, q, v, u, f, start);
-	while(!q.empty()) {
-		int qd = q.front();
-		int step = u[qd];
-		int num = v[qd];
-		q.pop();
-		int stat = station[qd].emax;
-		while(stat) {
-			int temp = edge[qd].num;
-			vector<int> tmp = inters(station[qd].v, station[temp].v);
-			int stp = (inters(inters(station[qd].v, station[abs(f[qd])].v), tmp).size() != 1) + step;
-			if (f[qd] == 0) {
-				stp = 0;
-			}
-			if (JudgeInt(f, qd, temp)) {
-				++stp;
-			}
-			bool flagg = v[qd] + 1 < v[temp];
-			if (flagg) {
-				q.push(temp);
-				v[temp] = v[qd] + 1;
-				u[temp] = stp;
-				f[temp] = qd;
-				if (stp > step) {
-					f[temp] = -f[temp];
-					tr[temp] = tmp[0];
-				}
-				if (temp == end) {
-					int nnum = 0;
-					while(temp) {
-						string tmp(station[temp].str);
-						if (nnum) {
-							tmp += string("换乘") + string(lines[nnum]);
-						}
-						if (f[temp] < 0)
-							nnum = tr[temp];
-						else
-							nnum = 0;
-						st_name.push_back(tmp);
-						if (!flag)
-							*(ptr++) = temp;
-						temp = abs(f[temp]);
-					}
-					if (flag) {
-						printf("%llu\n", st_name.size());
-						for (unsigned int i = 1; i <= st_name.size(); ++i)
-							printf("%s\n", st_name[st_name.size() - i].c_str());
-					}
-					return (int)st_name.size();
-				}
-			}
-			stat = edge[stat].prior;
+int Subway::Bfs1(int s, int t, bool pt = true, int *ret = NULL) {
+		if (s == t)
+		{
+			printf("已到达\n");
+			return 0;
 		}
+		queue<int> q;
+		vector<string> ans;
+		ans.clear();
+		while (!q.empty()) q.pop();
+		int v[maxn], u[maxn], f[maxn], tr[maxn];
+		memset(v, 0x3e, sizeof(v));
+		memset(u, 0x3e, sizeof(u));
+		q.push(s);
+		v[s] = 0;
+		u[s] = 0;
+		f[s] = 0;
+		while (!q.empty()) {
+			int x = q.front();
+			int step = u[x];
+			int d = v[x];
+			q.pop();
+			for (int p = station[x].emax; p; p = edge[p].prior) {
+				int y = edge[p].num;
+				vector<int> tmp = inters(station[x].v, station[y].v);
+				int stp = (inters(inters(station[x].v, station[abs(f[x])].v), tmp).size() != 1) + step;
+				if (f[x] == 0) stp = 0;
+				if (JudgeInt(f, x, y)) {
+					++stp;
+				}
+				bool flag = v[x] + 1 < v[y];
+				if (flag) {
+					q.push(y);
+					v[y] = v[x] + 1;
+					u[y] = stp;
+					f[y] = x;
+					if (stp > step) f[y] = -f[y], tr[y] = tmp[0];
+					if (y == t) {
+						int nflag = 0;
+						while (y) {
+							string tmp(station[y].str);
+							if (nflag) tmp += string("换乘") + string(lines[nflag]);
+							if (f[y] < 0) nflag = tr[y]; else nflag = 0;
+							ans.push_back(tmp);
+							if (!pt) *(ret++) = y;
+							y = abs(f[y]);
+						}
+						if (pt) {
+							printf("%llu\n", ans.size());
+							for (unsigned int i = 1; i <= ans.size(); ++i) printf("%s\n", ans[ans.size() - i].c_str());
+						}
+						return (int)ans.size();
+					}
+				}
+			}
+		}
+		return -1;
 	}
-	return -1;
-}
 
 void Subway::Dfs1(int ref1, int ref2)
 {
@@ -418,118 +398,95 @@ void Subway::Dfs1(int ref1, int ref2)
 	}
 }
 
-void Subway::Dfs2(int ref1, int ref2, int ref3)
+void Subway::Dfs2(int x, int l, int s)
 {
-	if (ref2 == stat_num && ref1 == ref3) {
+	int flag = 0;
+	if (l == stat_num && x == s) {
 		if (anum < ans) {
 			ans = anum;
 			memcpy(ansq, anst, anum * sizeof(int));
+			//printInfo(ansq, ans);
+			//exit(0);
 		}
 		return;
 	}
 	++maxt;
-	if (maxt > lim) {
+	if (maxt > lim) return;
+	if (anum + stat_num - l >= ans || maxt>lim)
 		return;
-	}
-	if (anum + stat_num - ref2 >= ans || maxt > lim) {
-		return;
-	}
-	int temp = 0;
-	for (int stat = station[ref1].emax; stat; stat = edge[stat].prior) {
-		int num = edge[stat].num;
-		if (et[num] == 0 && (num != ref3 || ref2 == stat_num - 1) && tg[num]) {
-			temp = -num;
-			anst[anum] = num;
+	for (int p = station[x].emax; p; p = edge[p].prior) {
+		int y = edge[p].num;
+		if (et[y] == 0 && (y != s || l == stat_num - 1) && tg[y]) {
+			flag = -y;
+			anst[anum] = y;
 			++anum;
-			++et[num];
-			Dfs2(num, ref2+1, ref3);
-			--et[num];
+			++et[y];
+			Dfs2(y, l + 1, s);
+			--et[y];
 			--anum;
 		}
 	}
-	if (temp == 0) {
-		int stat = station[ref1].emax;
-		while(stat) {
-			int num = edge[stat].num;
-			if (et[num] == 0 && (num != ref3 || ref2 == stat_num - 1)) {
-				temp = num;
-				anst[anum] = num;
+	if (flag == 0)
+		for (int p = station[x].emax; p; p = edge[p].prior) {
+			int y = edge[p].num;
+			if (et[y] == 0 && (y != s || l == stat_num - 1)) {
+				flag = y;
+				anst[anum] = y;
 				++anum;
-				++et[num];
-				Dfs2(num, ref2+1, ref3);
-				--et[num];
+				++et[y];
+				Dfs2(y, l + 1, s);
+				--et[y];
 				--anum;
 			}
-			stat = edge[stat].prior;
 		}
-	}
-	if (temp == 0) {
-		int mmax[2] = {100100000, 100100000};
-		int mmin[2] = {-1, -1};
-		for (int num = 1; num <= stat_num; ++num) {
-			if (et[num] == 0 && (num != ref3 || ref2 == stat_num-1)) {
-				int* ptr;
+	if (flag == 0) {
+		int mx[2] = { 100100000,100100000 }, mi[2] = { -1,-1 };
+		for (int y = 1; y <= stat_num; ++y)
+			if (et[y] == 0 && (y != s || l == stat_num - 1)) {
+				int *tmp;
 				int cnt = 0;
-				if (paths.find(DI(ref1, num)) == paths.end()) {
-					ptr = (int*)malloc(stat_num * sizeof(int));
-					cnt = Bfs1(ref1, num, false, ptr);
-					paths[DI(ref1, num)] = PDI(ptr, cnt);
+				if (paths.find(DI(x, y)) == paths.end()) {
+					tmp = (int*)malloc(stat_num * sizeof(int));
+					cnt = Bfs1(x, y, false, tmp);
+					paths[DI(x, y)] = PDI(tmp, cnt);
 				}
-				if (cnt - 1 < mmax[0]) {
-					mmax[1] = mmax[0];
-					mmin[1] = mmin[0];
-					mmax[0] = cnt - 1;
-					mmin[0] = num;
-				}
-				else if (cnt - 1 < mmax[1]) {
-					mmax[1] = cnt - 1;
-					mmin[1] = num;
-				}
+				if (cnt - 1 < mx[0]) mx[1] = mx[0], mi[1] = mi[0], mx[0] = cnt - 1, mi[0] = y;
+				else if (cnt - 1 < mx[1]) mx[1] = cnt - 1, mi[1] = y;
 			}
-		}
 		int ant = anum;
-		for (int i = 0; i < 2; ++i) {
-			if (i == 1 && mmin[i] == -1)
-				continue;
-			if (i == 0 && mmin[i] == -1) {
-				mmin[i] = ref3;
-				if (paths.find(DI(ref1, mmin[i])) == paths.end()) {
-					int *ptr = (int*)malloc(stat_num * sizeof(int));
-					int cnt = Bfs1(ref1, mmin[i], false, ptr);
-					paths[DI(ref1, mmin[i])] = PDI(ptr, cnt);
+		for (int o = 0; o < 2; ++o) {
+			if (o > 0 && mi[o] == -1) continue;
+			if (o == 0 && mi[o] == -1)
+			{
+				mi[o] = s;
+				if (paths.find(DI(x, mi[o])) == paths.end()) {
+					int *tmp = (int*)malloc(stat_num * sizeof(int));
+					int cnt = Bfs1(x, mi[o], false, tmp);
+					//cout << cnt << endl;
+					paths[DI(x, mi[o])] = PDI(tmp, cnt);
 				}
 			}
-			int *pk = paths[DI(ref1, mmin[i])].first;
-			int kint = paths[DI(ref1, mmin[i])].second;
-			int ncint = 0;
-			for (int j = 1; j < kint; ++i) {
-				int num = pk[kint-j-1];
-				if (et[num] <= station[num].enumb) {
-					anst[anum] = num;
-					++anum;
-					if (et[num] == 0)
-						++ncint;
-					++et[num];
+			int *kk = paths[DI(x, mi[o])].first;
+			int ks = paths[DI(x, mi[o])].second;
+			int nc = 0;
+			for (int i = 1; i < ks; ++i) {
+				int y = kk[ks - 1 - i];
+				if (et[y] <= station[y].enumb) {
+					anst[anum++] = y;
+					if (et[y] == 0) ++nc;
+					++et[y];
 				}
 				else {
 					anum = ant;
-					for (int k = 1; k < j; ++k)
-						--et[pk[kint-k-1]];
+					for (int j = 1; j < i; ++j) --et[kk[ks - 1 - j]];
 					return;
 				}
 			}
-			Dfs2(mmin[i], ref2+ncint, ref3);
+			Dfs2(mi[o], l + nc, s);
 			anum = ant;
-			for (int j = 1; j < kint; ++j)
-				--et[pk[kint-j-1]];
+			for (int j = 1; j < ks; ++j) --et[kk[ks - 1 - j]];
 		}
 	}
-}
-
-bool Subway::Initialize(string file = string(""))
-{//读取文件中的地铁站信息 
-	if (file != "") strcpy(path, file.data());
-	return (Init() == 1);
 }
 
 void Subway::do_main(string s)
@@ -559,7 +516,7 @@ void Subway::do_a(string s)
 		paths.clear();
 		Dfs2(temp, 0, temp);
 		printf("%d\n", ans);
-		for (int i = 1; i < ans; ++i) {
+		for (int i = 0; i < ans; ++i) {
 			printf("%s\n", station[ansq[i]].str);
 		}
 	}
@@ -584,7 +541,7 @@ Subway subway(subway_data);
 int main(int argc, char* argv[])
 {
 	string cmd_exit("exit");
-	if (subway.Initialize()) {
+	if (subway.Init()) {
 		cout << "Initialization failed." << endl;
 		return 1;
 	}
@@ -599,13 +556,18 @@ int main(int argc, char* argv[])
 		}
 	}
 	else if (argc == 3 && !strcmp(argv[1], "/a")) {
+		flag = false;
 		string ref(argv[2]);
 		subway.do_a(ref);
 	}
 	else if (argc == 4 && !strcmp(argv[1], "/b")) {
+		flag = false;
 		string ref1(argv[2]);
 		string ref2(argv[3]);
 		subway.do_b(ref1, ref2);
+	}
+	if (flag) {
+		printf("your input is fault.\n");
 	}
 	return 0;
 }
