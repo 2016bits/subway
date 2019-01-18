@@ -14,7 +14,7 @@
 using namespace std;
 typedef pair<int, int> DI;
 typedef pair<int*, int> PDI;
-typedef struct edge{		//存边的信息 
+typedef struct Edge{		//存边的信息 
 	int num;				//当前边的编号 
 	int prior;				//上一条邻接边的编号 
 }EDGE;
@@ -308,7 +308,12 @@ void Subway::Bfs2(int start, int end)
 
 bool Subway::JudgeInt(int* f, int x, int y)
 {
+	bool flag = true;
 	bool flag1 = true, flag2 = true;
+	if (f[x] == 0)
+		flag = false;
+	else if (f[abs(f[x])] == 0)
+		flag = false;
 	if (abs(f[abs(f[x])]) != AddStation("大望路"))
 		flag1 = false;
 	else if (y == AddStation("高碑店"))
@@ -317,9 +322,9 @@ bool Subway::JudgeInt(int* f, int x, int y)
 		flag2 = false;
 	else if (y == AddStation("大望路"))
 		flag2 = false;
-	return(flag1 || flag2);
+	flag = (flag && (flag1 || flag2));
+	return flag;
 }
-
 
 void Subway::BfsIntInit(vector<string> &ans, queue<int>&q, int*v, int*u, int*f, int start)
 {
@@ -406,7 +411,7 @@ void Subway::Dfs1(int ref1, int ref2)
 	int stat = station[ref1].emax;
 	while(stat) {
 		int num = edge[stat].num;
-		if (num != ref2 && station[num].enumb < 3 && station[num].enumb && !tg[num]) {
+		if (num != ref2 && station[num].enumb < 3 && !tg[num]) {
 			Dfs1(num, ref1);
 		}
 		stat = edge[stat].prior;
@@ -437,7 +442,7 @@ void Subway::Dfs2(int ref1, int ref2, int ref3)
 			anst[anum] = num;
 			++anum;
 			++et[num];
-			Dfs2(num, ref2, ref3);
+			Dfs2(num, ref2+1, ref3);
 			--et[num];
 			--anum;
 		}
@@ -462,22 +467,24 @@ void Subway::Dfs2(int ref1, int ref2, int ref3)
 		int mmax[2] = {100100000, 100100000};
 		int mmin[2] = {-1, -1};
 		for (int num = 1; num <= stat_num; ++num) {
-			int* ptr;
-			int cnt = 0;
-			if (paths.find(DI(ref1, num)) == paths.end()) {
-				ptr = (int*)malloc(stat_num * sizeof(int));
-				cnt = Bfs1(ref1, num, false, ptr);
-				paths[DI(ref1, num)] = PDI(ptr, cnt);
-			}
-			if (cnt - 1 < mmax[0]) {
-				mmax[1] = mmax[0];
-				mmin[1] = mmin[0];
-				mmax[0] = cnt - 1;
-				mmin[0] = num;
-			}
-			else if (cnt - 1 < mmax[1]) {
-				mmax[1] = cnt - 1;
-				mmin[1] = num;
+			if (et[num] == 0 && (num != ref3 || ref2 == stat_num-1)) {
+				int* ptr;
+				int cnt = 0;
+				if (paths.find(DI(ref1, num)) == paths.end()) {
+					ptr = (int*)malloc(stat_num * sizeof(int));
+					cnt = Bfs1(ref1, num, false, ptr);
+					paths[DI(ref1, num)] = PDI(ptr, cnt);
+				}
+				if (cnt - 1 < mmax[0]) {
+					mmax[1] = mmax[0];
+					mmin[1] = mmin[0];
+					mmax[0] = cnt - 1;
+					mmin[0] = num;
+				}
+				else if (cnt - 1 < mmax[1]) {
+					mmax[1] = cnt - 1;
+					mmin[1] = num;
+				}
 			}
 		}
 		int ant = anum;
@@ -496,7 +503,7 @@ void Subway::Dfs2(int ref1, int ref2, int ref3)
 			int kint = paths[DI(ref1, mmin[i])].second;
 			int ncint = 0;
 			for (int j = 1; j < kint; ++i) {
-				int num = pk[kint-i-1];
+				int num = pk[kint-j-1];
 				if (et[num] <= station[num].enumb) {
 					anst[anum] = num;
 					++anum;
@@ -538,7 +545,6 @@ void Subway::do_main(string s)
 void Subway::do_a(string s)
 {//从s出发遍历北京地铁站 
 	if (stat_refl.find(s) != stat_refl.end()) {
-		int temp = stat_refl[s];
 		memset(et, 0, sizeof(et));
 		memset(tg, 0, sizeof(tg));
 		maxt = 0;
@@ -548,6 +554,7 @@ void Subway::do_a(string s)
 			}
 		}
 		anum = 1, ans = 1001;
+		int temp = stat_refl[s];
 		anst[0] = temp;
 		paths.clear();
 		Dfs2(temp, 0, temp);
