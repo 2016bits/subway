@@ -62,6 +62,8 @@ public:
 	bool JudgeInt(int*, int, int);
 	int Bfs1(int, int, bool, int*);
 	void Dfs1(int, int);
+	void Dfs2Fun1(int&, int&, int&, int&);
+	void Dfs2Fun2(int&, int&, int&, int*, int*);
 	void Dfs2(int, int, int);
 	void do_main(string);		//查询地铁线路信息 
 	void do_b(string, string);	//查询从地铁站1到地铁站2的最短路径 
@@ -398,79 +400,101 @@ void Subway::Dfs1(int ref1, int ref2)
 	}
 }
 
-void Subway::Dfs2(int x, int l, int s)
+void Subway::Dfs2Fun1(int&ref1, int&ref2, int&ref3, int&nnum)
 {
-	int flag = 0;
-	if (l == stat_num && x == s) {
+	int stat = station[ref1].emax;
+	while (stat) {
+		int temp = edge[stat].num;
+		if (et[temp] == 0 && (temp != ref3 || ref2 == stat_num - 1) && tg[temp]) {
+			nnum = -temp;
+			anst[anum] = temp;
+			++anum;
+			++et[temp];
+			Dfs2(temp, ref2 + 1, ref3);
+			--et[temp];
+			--anum;
+		}
+		stat = edge[stat].prior;
+	}
+	if (nnum == 0) {
+		int stat = station[ref1].emax;
+		while (stat) {
+			int temp = edge[stat].num;
+			if (et[temp] == 0 && (temp != ref3 || ref2 == stat_num - 1)) {
+				nnum = temp;
+				anst[anum] = temp;
+				++anum;
+				++et[temp];
+				Dfs2(temp, ref2 + 1, ref3);
+				--et[temp];
+				--anum;
+			}
+			stat = edge[stat].prior;
+		}
+	}
+}
+
+void Subway::Dfs2Fun2(int&ref1, int&ref2, int&ref3, int*mmax, int*mmin)
+{
+	for (int y = 1; y <= stat_num; ++y) {
+		if (et[y] == 0 && (y != ref3 || ref2 == stat_num - 1)) {
+			int *tmp;
+			int cnt = 0;
+			if (paths.find(DI(ref1, y)) == paths.end()) {
+				tmp = (int*)malloc(stat_num * sizeof(int));
+				cnt = Bfs1(ref1, y, false, tmp);
+				paths[DI(ref1, y)] = PDI(tmp, cnt);
+			}
+			if (cnt - 1 < mmax[0]) {
+				mmax[1] = mmax[0];
+				mmin[1] = mmin[0];
+				mmax[0] = cnt - 1;
+				mmin[0] = y;
+			}
+			else if (cnt - 1 < mmax[1]) {
+				mmax[1] = cnt - 1;
+				mmin[1] = y;
+			}
+		}
+	}
+}
+
+void Subway::Dfs2(int ref1, int ref2, int ref3)
+{
+	if (ref2 == stat_num && ref1 == ref3) {
 		if (anum < ans) {
 			ans = anum;
 			memcpy(ansq, anst, anum * sizeof(int));
-			//printInfo(ansq, ans);
-			//exit(0);
 		}
 		return;
 	}
 	++maxt;
-	if (maxt > lim) return;
-	if (anum + stat_num - l >= ans || maxt>lim)
+	if (maxt > lim)
 		return;
-	for (int p = station[x].emax; p; p = edge[p].prior) {
-		int y = edge[p].num;
-		if (et[y] == 0 && (y != s || l == stat_num - 1) && tg[y]) {
-			flag = -y;
-			anst[anum] = y;
-			++anum;
-			++et[y];
-			Dfs2(y, l + 1, s);
-			--et[y];
-			--anum;
-		}
-	}
-	if (flag == 0)
-		for (int p = station[x].emax; p; p = edge[p].prior) {
-			int y = edge[p].num;
-			if (et[y] == 0 && (y != s || l == stat_num - 1)) {
-				flag = y;
-				anst[anum] = y;
-				++anum;
-				++et[y];
-				Dfs2(y, l + 1, s);
-				--et[y];
-				--anum;
-			}
-		}
-	if (flag == 0) {
-		int mx[2] = { 100100000,100100000 }, mi[2] = { -1,-1 };
-		for (int y = 1; y <= stat_num; ++y)
-			if (et[y] == 0 && (y != s || l == stat_num - 1)) {
-				int *tmp;
-				int cnt = 0;
-				if (paths.find(DI(x, y)) == paths.end()) {
-					tmp = (int*)malloc(stat_num * sizeof(int));
-					cnt = Bfs1(x, y, false, tmp);
-					paths[DI(x, y)] = PDI(tmp, cnt);
-				}
-				if (cnt - 1 < mx[0]) mx[1] = mx[0], mi[1] = mi[0], mx[0] = cnt - 1, mi[0] = y;
-				else if (cnt - 1 < mx[1]) mx[1] = cnt - 1, mi[1] = y;
-			}
+	if (anum + stat_num - ref2 >= ans || maxt > lim)
+		return;
+	int nnum = 0;
+	if (nnum == 0) {
+		int mmax[2] = { 100100000,100100000 };
+		int mmin[2] = { -1,-1 };
+		Dfs2Fun2(ref1, ref2, ref3, mmax, mmin);
 		int ant = anum;
-		for (int o = 0; o < 2; ++o) {
-			if (o > 0 && mi[o] == -1) continue;
-			if (o == 0 && mi[o] == -1)
+		for (int i = 0; i < 2; ++i) {
+			if (i > 0 && mmin[i] == -1) continue;
+			if (i == 0 && mmin[i] == -1)
 			{
-				mi[o] = s;
-				if (paths.find(DI(x, mi[o])) == paths.end()) {
+				mmin[i] = ref3;
+				if (paths.find(DI(ref1, mmin[i])) == paths.end()) {
 					int *tmp = (int*)malloc(stat_num * sizeof(int));
-					int cnt = Bfs1(x, mi[o], false, tmp);
-					//cout << cnt << endl;
-					paths[DI(x, mi[o])] = PDI(tmp, cnt);
+					int cnt = Bfs1(ref1, mmin[i], false, tmp);
+					paths[DI(ref1, mmin[i])] = PDI(tmp, cnt);
 				}
 			}
-			int *kk = paths[DI(x, mi[o])].first;
-			int ks = paths[DI(x, mi[o])].second;
+			int *kk = paths[DI(ref1, mmin[i])].first;
+			int ks = paths[DI(ref1, mmin[i])].second;
 			int nc = 0;
-			for (int i = 1; i < ks; ++i) {
-				int y = kk[ks - 1 - i];
+			for (int j = 1; j < ks; ++j) {
+				int y = kk[ks - 1 - j];
 				if (et[y] <= station[y].enumb) {
 					anst[anum++] = y;
 					if (et[y] == 0) ++nc;
@@ -478,13 +502,13 @@ void Subway::Dfs2(int x, int l, int s)
 				}
 				else {
 					anum = ant;
-					for (int j = 1; j < i; ++j) --et[kk[ks - 1 - j]];
+					for (int k = 1; k < j; ++k) --et[kk[ks-k-1]];
 					return;
 				}
 			}
-			Dfs2(mi[o], l + nc, s);
+			Dfs2(mmin[i], ref2 + nc, ref3);
 			anum = ant;
-			for (int j = 1; j < ks; ++j) --et[kk[ks - 1 - j]];
+			for (int j = 1; j < ks; ++j) --et[kk[ks-j-1]];
 		}
 	}
 }
