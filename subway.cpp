@@ -65,9 +65,9 @@ public:
 	void Dfs2Fun1(int&, int&, int&, int&);
 	void Dfs2Fun2(int&, int&, int&, int*, int*);
 	void Dfs2(int, int, int);
-	void do_main(string);		//查询地铁线路信息 
-	void do_b(string, string);	//查询从地铁站1到地铁站2的最短路径 
-	void do_a(string);			//遍历北京地铁 
+	void DoMain(string);		//查询地铁线路信息 
+	void DoB(string, string);	//查询从地铁站1到地铁站2的最短路径 
+	void DoA(string);			//遍历北京地铁 
 	void usage();				//使用说明（在没有参数输入时调用） 
 };
 
@@ -513,7 +513,7 @@ void Subway::Dfs2(int ref1, int ref2, int ref3)
 	}
 }
 
-void Subway::do_main(string s)
+void Subway::DoMain(string s)
 {//查询地铁线路信息 
 	int num = GetLineID(s.data());
 	if (num) {
@@ -523,7 +523,7 @@ void Subway::do_main(string s)
 	else printf("line %s was not found.\n", s.c_str());
 }
 
-void Subway::do_a(string s)
+void Subway::DoA(string s)
 {//从s出发遍历北京地铁站 
 	if (stat_refl.find(s) != stat_refl.end()) {
 		memset(et, 0, sizeof(et));
@@ -549,7 +549,7 @@ void Subway::do_a(string s)
 	}
 }
 
-void Subway::do_b(string s1, string s2)
+void Subway::DoB(string s1, string s2)
 {//查询从地铁站s1至地铁站s2的最短路径 
 	if (stat_refl.find(s1) != stat_refl.end() && stat_refl.find(s2) != stat_refl.end()) {
 		int start = stat_refl[s1];
@@ -566,7 +566,7 @@ int main(int argc, char* argv[])
 {
 	string cmd_exit("exit");
 	if (subway.Init()) {
-		cout << "Initialization failed." << endl;
+		printf("Initialization failed.\n");
 		return 1;
 	}
 	bool flag = true;
@@ -576,19 +576,19 @@ int main(int argc, char* argv[])
 		while (true) {
 			cin >> s;
 			if (s == cmd_exit) break;
-			subway.do_main(s);
+			subway.DoMain(s);
 		}
 	}
 	else if (argc == 3 && !strcmp(argv[1], "/a")) {
 		flag = false;
 		string ref(argv[2]);
-		subway.do_a(ref);
+		subway.DoA(ref);
 	}
 	else if (argc == 4 && !strcmp(argv[1], "/b")) {
 		flag = false;
 		string ref1(argv[2]);
 		string ref2(argv[3]);
-		subway.do_b(ref1, ref2);
+		subway.DoB(ref1, ref2);
 	}
 	if (flag) {
 		printf("your input is fault.\n");
